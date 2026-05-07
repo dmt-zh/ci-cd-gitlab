@@ -1,0 +1,76 @@
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:18.11.2-ce.0
+    container_name: gitlab-server
+    restart: always
+    environment:
+      GITLAB_ROOT_EMAIL: ${ROOT_EMAIL}
+      GITLAB_ROOT_PASSWORD: ${ROOT_PASSWORD}
+      GITLAB_SHARED_RUNNERS_REGISTRATION_TOKEN: ${REGISTRATION_TOKEN}
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://localhost:8088'
+        registry_external_url 'http://localhost:5005'
+        gitlab_rails['registry_enabled'] = true
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        nginx['listen_port'] = 8088
+        registry_nginx['listen_port'] = 5005
+        postgresql['shared_buffers'] = "256MB"
+        puma['worker_processes'] = 0
+        puma['worker_timeout'] = 600
+        sidekiq['max_concurrency'] = 5
+        prometheus_monitoring['enable'] = false
+    ports:
+      - 8088:8088
+      - 5005:5005
+      - 2222:22
+    volumes:
+      - ./gitlab/config:/etc/gitlab
+      - ./gitlab/logs:/var/log/gitlab
+      - ./gitlab/data:/var/opt/gitlab
+    shm_size: 256m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/users/sign_in"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 6gb
+        reservations:
+          memory: 3gb
+    networks:
+      - gitlab-net
+
+  runner:
+    image: gitlab/gitlab-runner:alpine
+    container_name: gitlab-runner
+    restart: always
+    depends_on:
+      gitlab:
+        condition: service_healthy
+    volumes:
+      - ./gitlab-runner/config:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: |
+      /bin/sh -c "
+      if [ ! -f /etc/gitlab-runner/config.toml ] || ! grep -q 'token' /etc/gitlab-runner/config.toml; then
+        echo 'Auto-registering runner...'
+        gitlab-runner register --non-interactive --url 'http://gitlab-server:8088/' --clone-url 'http://gitlab-server:8088/' --registration-token '${REGISTRATION_TOKEN}' --executor 'docker' --docker-image 'alpine:latest' --tag-list 'local' --docker-privileged --docker-network-mode 'gitlab-net' --docker-volumes '/var/run/docker.sock:/var/run/docker.sock'
+      fi
+      exec gitlab-runner run --user=gitlab-runner --working-directory=/home/gitlab-runner
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 2gb
+        reservations:
+          memory: 500mb
+    networks:
+      - gitlab-net
+
+networks:
+  gitlab-net:
+    name: gitlab-net
+    driver: bridge

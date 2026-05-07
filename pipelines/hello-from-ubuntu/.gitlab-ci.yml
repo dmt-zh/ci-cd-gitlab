@@ -1,0 +1,16 @@
+debian_job:
+  image: debian:12
+  tags:
+    - local
+  script:
+    - apt update
+    - apt install -y cowsay
+    - export PATH="$PATH:/usr/games"
+    - cowsay "Hello from debian_job!"
+
+ubuntu_job:
+  image: ubuntu:24.04
+  tags:
+    - local
+  script:
+    - echo "Hello from ubuntu_job!"

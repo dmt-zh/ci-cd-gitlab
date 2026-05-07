@@ -1,0 +1,9 @@
+hello_ci_cd:
+  stage: test
+  tags:
+    - local
+  script:
+    - "echo \"Hello, world! Pipeline is starting...\""
+    - "echo \"Runner info: $(uname -a)\""
+    - "echo \"Current user: $(whoami)\""
+    - "echo \"Checking network: ping -c 1 gitlab-server\""
