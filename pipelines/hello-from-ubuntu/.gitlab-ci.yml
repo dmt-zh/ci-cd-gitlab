@@ -1,4 +1,8 @@
+stages:
+  - hello-jobs
+
 debian_job:
+  stage: hello-jobs
   image: debian:12
   tags:
     - local
@@ -9,8 +13,18 @@ debian_job:
     - cowsay "Hello from debian_job!"
 
 ubuntu_job:
+  stage: hello-jobs
   image: ubuntu:24.04
   tags:
     - local
   script:
     - echo "Hello from ubuntu_job!"
+
+manual_job:
+  stage: .post
+  image: ubuntu:22.04
+  tags:
+    - local
+  when: manual
+  script:
+    - echo "Hello from manual_job!"
