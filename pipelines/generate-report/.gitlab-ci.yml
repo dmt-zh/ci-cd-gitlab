@@ -1,0 +1,48 @@
+stages:
+  - build
+  - generate-report
+  - show-report
+
+variables:
+  REPORT_BINARY_NAME: report
+  COMMIT_REPORT_NAME: commit-report
+
+build:
+  stage: build
+  tags:
+    - local
+  image: golang:1.24
+  variables:
+    GOOS: linux
+    GOARCH: amd64
+  script:
+    - go build -o $REPORT_BINARY_NAME main.go
+  artifacts:
+    expire_in: 1 hour
+    paths:
+      - $REPORT_BINARY_NAME
+
+report:generate:
+  stage: generate-report
+  tags:
+    - local
+  image: ubuntu:24.04
+  dependencies:
+    - build
+  script:
+    - ./$REPORT_BINARY_NAME -commit-report-name=$COMMIT_REPORT_NAME
+  artifacts:
+    expire_in: 1 hour
+    paths:
+      - $COMMIT_REPORT_NAME
+
+report:show:
+  stage: show-report
+  tags:
+    - local
+  image: ubuntu:24.04
+  dependencies:
+    - report:generate
+  script:
+    - ls
+    - cat $COMMIT_REPORT_NAME
