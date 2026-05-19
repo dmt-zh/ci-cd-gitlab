@@ -1,0 +1,46 @@
+stages:
+    - build
+    - test
+    - deploy
+
+build:
+    tags:
+      - local
+    stage: build
+    script:
+        - echo "Представим, что здесь мы собираем Docker-образ."
+
+tests:unit-tests:
+    tags:
+        - local
+    stage: test
+    script:
+        - echo "Здесь запускаются unit-тесты."
+
+deploy:prod:
+    tags:
+      - local
+    stage: deploy
+    script:
+        - echo "Деплой в prod."
+    rules:
+        - if: $CI_COMMIT_BRANCH == "prod"
+          when: manual
+
+deploy:test:
+    tags:
+        - local
+    stage: deploy
+    script:
+        - echo "Деплой в test."
+    rules:
+        - if: $CI_COMMIT_BRANCH == "test"
+
+deploy:dev:
+    tags:
+        - local
+    stage: deploy
+    script:
+        - echo "Деплой в dev."
+    rules:
+        - if: $CI_COMMIT_BRANCH == "dev"
